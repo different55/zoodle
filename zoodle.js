@@ -51,6 +51,7 @@ class Zoodle {
   }
 
   update() {
+    this.syncLayers();
     this.scene.updateRenderGraph();
     this.overlay.updateRenderGraph();
     this.widgets.updateRenderGraph();
@@ -58,24 +59,9 @@ class Zoodle {
     requestAnimationFrame(this.update.bind(this));
   }
 
-  select(target) {
-    if (!target) {
-      this.clearSelection();
-      return;
-    }
-
-    // If this is a compositeChild, find its parent
-    while (target.compositeChild) {
-      target = target.addTo;
-    }
-
-    // Don't highlight if target is the scene element
-    if (!target.addTo) {
-      this.clearSelection();
-      return;
-    }
-
-    this.toggleSelection(target);
+  do(command) {
+    this.history.push(command);
+    command.do();
   }
 
   toggleSelection(target) {
@@ -85,15 +71,15 @@ class Zoodle {
     } else {
       this.selection.push(target);
     }
-    this.updateSelection();
+    this.updateHighlight();
   }
 
   clearSelection() {
     this.selection = [];
-    this.updateSelection();
+    this.updateHighlight();
   }
 
-  updateSelection() {
+  updateHighlight() {
     this.overlay.children = [];
     this.selection.forEach((selected) => {
       let highlight = selected.copyGraph({
@@ -111,8 +97,6 @@ class Zoodle {
       // Apply parent transforms to selected object.
       Zdog.extend(highlight, this.getWorldTransforms(selected));
     });
-
-    this.syncLayers();
   }
 
   syncLayers() {
@@ -163,7 +147,7 @@ class Zoodle {
 
   // input
   click(ptr, target, x, y) {
-    this.select(target);
+    this.do(new SelectCommand(this, target));
   }
 
   dragStart(ptr, target, x, y) {
@@ -199,6 +183,7 @@ class OrbitTool extends Tool {
   }
   move(ptr, target, x, y) {
     this.editor.fetch.rotateMove(ptr, target, x, y);
+    this.editor.syncLayers();
   }
 }
 
@@ -206,12 +191,44 @@ class Command {
   constructor(editor) {
     this.editor = editor;
   }
-  execute() {}
+  do() {}
   undo() {}
   canMerge(command) {
     return false;
   }
   merge(command) {}
+}
+
+class SelectCommand extends Command {
+  constructor(editor, target) {
+    super(editor);
+    this.oldSelection = null;
+
+    // If this is a compositeChild, find its parent
+    while (target && target.compositeChild) {
+      target = target.addTo;
+    }
+    // Don't select root elements.
+    if (target && !target.addTo) {
+      target = null;
+    }
+    this.target = target;
+  }
+  do() {
+    if (!this.target) {
+      this.oldSelection = this.editor.selection;
+      this.editor.clearSelection();
+    } else {
+      this.editor.toggleSelection(this.target);
+    }
+  }
+  undo() {
+    if (!this.target) {
+      this.editor.selection = this.oldSelection;
+    } else {
+      this.editor.toggleSelection(this.target);
+    }
+  }
 }
 
 class History {
@@ -223,7 +240,7 @@ class History {
   push(command) {
     // Check to see if this command is mergeable into the last.
     let lastCommand = this.undoStack[this.undoStack.length - 1];
-    if (lastCommand.canMerge(command)) {
+    if (lastCommand && lastCommand.canMerge(command)) {
       lastCommand.merge(command);
       return;
     }
@@ -248,7 +265,7 @@ class History {
     }
 
     let command = this.redoStack.pop();
-    command.execute();
+    command.do();
     this.undoStack.push(command);
   }
 }
