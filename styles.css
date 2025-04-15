@@ -112,6 +112,23 @@ main {
     z-index: 0;
 }
 
+#canvas {
+    cursor: grab;
+}
+
+#overlay ~ #canvas:active {
+    cursor: grabbing;
+}
+
+#canvas > * {
+    cursor: pointer;
+}
+
+/* Change to pointer when clicking on canvas would deselect elements */
+#overlay:has(> *) ~ #canvas {
+    cursor: pointer;
+}
+
 /*
 #canvas .selected {
     filter: drop-shadow(0 0 0.2px #E62)
