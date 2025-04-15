@@ -129,16 +129,6 @@ main {
     cursor: pointer;
 }
 
-/*
-#canvas .selected {
-    filter: drop-shadow(0 0 0.2px #E62)
-      drop-shadow(0 0 0.1px #E62)
-      drop-shadow(0 0 0.05px #E62)
-      drop-shadow(0 0 0.025px #E62)
-      drop-shadow(0 0 0.0125px #E62);
-}
-*/
-
 #overlay {
     z-index: 1;
 }
