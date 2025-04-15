@@ -27,7 +27,7 @@ class Zoodle {
     });
 
     this.selection = [];
-    this.queue = [];
+    this.history = new History();
     this.tool = "orbit";
     this.tools = {
       orbit: new OrbitTool(this),
@@ -199,6 +199,57 @@ class OrbitTool extends Tool {
   }
   move(ptr, target, x, y) {
     this.editor.fetch.rotateMove(ptr, target, x, y);
+  }
+}
+
+class Command {
+  constructor(editor) {
+    this.editor = editor;
+  }
+  execute() {}
+  undo() {}
+  canMerge(command) {
+    return false;
+  }
+  merge(command) {}
+}
+
+class History {
+  constructor() {
+    this.undoStack = [];
+    this.redoStack = [];
+  }
+
+  push(command) {
+    // Check to see if this command is mergeable into the last.
+    let lastCommand = this.undoStack[this.undoStack.length - 1];
+    if (lastCommand.canMerge(command)) {
+      lastCommand.merge(command);
+      return;
+    }
+
+    this.undoStack.push(command);
+    this.redoStack = [];
+  }
+
+  undo() {
+    if (this.undoStack.length === 0) {
+      return;
+    }
+
+    let command = this.undoStack.pop();
+    command.undo();
+    this.redoStack.push(command);
+  }
+
+  redo() {
+    if (this.redoStack.length === 0) {
+      return;
+    }
+
+    let command = this.redoStack.pop();
+    command.execute();
+    this.undoStack.push(command);
   }
 }
 
