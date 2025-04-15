@@ -1,0 +1,176 @@
+/* Global styles */
+*, *::before, *::after {
+    box-sizing: border-box;
+    margin: 0;
+    line-height: calc(1em + 0.5rem);
+}
+
+body {
+    -webkit-font-smoothing: antialiased;
+}
+
+img, picture, video, canvas, svg {
+    display: block;
+    max-width: 100%;
+}
+
+input, button, textarea, select {
+    font: inherit;
+    border: none;
+}
+
+.hidden {
+	display: none;
+}
+
+/* Presets */
+:root {
+    --charcoal: #333;
+    --raisin: #534;
+    --plum: #636;
+    --rose: #C25;
+    --orange: #E62;
+    --gold: #EA0;
+    --lemon: #ED0;
+    --peach: #FDB;
+    --lace: #FFF4E8;
+    --blueberry: #359;
+    --lime: #4A2;
+    --mint: #CFD;
+
+    --roundness: .5rem;
+}
+
+/* Fonts */
+body {
+    font-family: "din-2014-rounded-variable", sans-serif;
+    font-variation-settings: "wght" 400;
+    color: var(--raisin);
+}
+
+/* Toolbar */
+button {
+    width: 2rem;
+    height: 2rem;
+    border-radius: var(--roundness);
+
+    color: var(--raisin);
+    background: var(--lace);
+    box-shadow: 0 0 0 0.25rem transparent;
+
+    cursor: pointer;
+    font-size: 0;
+    transition: box-shadow 0.2s, background 0.2s;
+}
+
+button:first-letter {
+    font-size: 1.5rem;
+    line-height: 2rem;
+    font-variation-settings: "wght" 600;
+}
+
+button:hover {
+    background: var(--peach);
+    box-shadow: 0 1px 0.25rem 0 color-mix(in srgb, var(--raisin) 10%, transparent);
+}
+
+menu {
+    position: fixed;
+    left: 0;
+    height: 100vh;
+    padding-left: 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: .5em;
+}
+
+menu li {
+    list-style: none;
+}
+
+main {
+    width: 100vw;
+    height: 100vh;
+}
+
+/* Canvas */
+.canvas-container {
+    position: relative;
+    width: 100vw;
+    height: 100vh;
+}
+
+.canvas-layer {
+    position: absolute;
+    width: 100vw;
+    height: 100vh;
+    pointer-events: none;
+}
+
+#canvas {
+    pointer-events: auto;
+    z-index: 0;
+}
+
+/*
+#canvas .selected {
+    filter: drop-shadow(0 0 0.2px #E62)
+      drop-shadow(0 0 0.1px #E62)
+      drop-shadow(0 0 0.05px #E62)
+      drop-shadow(0 0 0.025px #E62)
+      drop-shadow(0 0 0.0125px #E62);
+}
+*/
+
+#overlay {
+    z-index: 1;
+}
+
+#overlay {
+    filter: url(#better-highlight);
+}
+
+#widgets {
+    z-index: 2;
+}
+
+/* Properties */
+#properties {
+    position: fixed;
+    top: 1rem;
+    bottom: 1rem;
+    right: 1rem;
+    width: 20rem;
+    padding: 1rem;
+    resize: horizontal;
+    background: var(--lace);
+    color: var(--raisin);
+    border-radius: var(--roundness);
+}
+
+/* Footer */
+/* Animation */
+@keyframes toast {
+    0% {
+        transform: translateY(100%);
+    }
+    10%, 90% {
+        transform: translateY(0);
+    }
+    100% {
+        transform: translateY(100%);
+    }
+}
+footer {
+    display: inline-block;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    padding: .25rem;
+    background: var(--lace);
+    color: var(--raisin);
+    border-top-right-radius: .25rem;
+    animation: toast 5s;
+    animation-delay: 2s;
+    transform: translateY(100%);
+}
