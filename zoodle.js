@@ -1,77 +1,134 @@
-function Zoodle(scene, overlay, widgets) {
-  this.scene = scene;
-  this.overlay = overlay;
-  this.widgets = widgets;
+class Zoodle {
+  constructor(sceneElem, overlayElem, widgetsElem) {
+    // TODO: Calculate appropriate zooms and sizes
+    let zoom = 10;
+    let rotate = { x: -Math.atan(1 / Math.sqrt(2)), y: TAU / 8 };
 
-  this.selection = [];
-  this.tool = "orbit";
-  this.tools = {
-    orbit: new OrbitTool(this),
-    translate: new TranslateTool(this),
-  };
+    this.scene = new Zdog.Illustration({
+      element: sceneElem,
+      zoom: zoom,
+      resize: 'fullscreen',
+      rotate: rotate,
+      dragRotate: false,
+    });
+    this.overlay = new Zdog.Illustration({
+      element: overlayElem,
+      zoom: zoom,
+      resize: 'fullscreen',
+      rotate: rotate,
+      dragRotate: false,
+    });
+    this.widgets = new Zdog.Illustration({
+      element: widgetsElem,
+      zoom: zoom,
+      resize: 'fullscreen',
+      rotate: rotate,
+      dragRotate: false,
+    });
 
-  this.click = (ptr, target, x, y) => {
-    this.select(target);
-  };
+    this.selection = [];
+    this.queue = [];
+    this.tool = "orbit";
+    this.tools = {
+      orbit: new OrbitTool(this),
+    };
 
-  this.select = (target) => {
+    this.presets = {
+      solar: new Solar(this.scene),
+    }
+
+    this.presets.solar.load(this.scene);
+
+    this.fetch = new Zfetch({
+      scene: this.scene,
+      click: this.click.bind(this),
+      dragStart: this.dragStart.bind(this),
+      dragMove: this.dragMove.bind(this),
+      dragEnd: this.dragEnd.bind(this),
+    });
+
+    this.update();
+  }
+
+  update() {
+    this.scene.updateRenderGraph();
+    this.overlay.updateRenderGraph();
+    this.widgets.updateRenderGraph();
+    //this.scene.element.setAttribute("data-zdog", JSON.stringify(this.scene));
+    requestAnimationFrame(this.update.bind(this));
+  }
+
+  select(target) {
+    if (!target) {
+      this.clearSelection();
+      return;
+    }
+
     // If this is a compositeChild, find its parent
     while (target.compositeChild) {
       target = target.addTo;
     }
 
     // Don't highlight if target is the scene element
-    if (!target || target.element === this.scene.element) {
+    if (!target.addTo) {
       this.clearSelection();
       return;
     }
 
     this.toggleSelection(target);
-  };
+  }
 
-  this.toggleSelection = (target) => {
+  toggleSelection(target) {
     const index = this.selection.indexOf(target);
-
     if (index !== -1) {
       this.selection.splice(index, 1);
     } else {
       this.selection.push(target);
     }
-
     this.updateSelection();
-  };
+  }
 
-  this.clearSelection = () => {
+  clearSelection() {
     this.selection = [];
-
     this.updateSelection();
-  };
+  }
 
-  this.updateSelection = () => {
+  updateSelection() {
     this.overlay.children = [];
-
-    for (let i = 0; i < this.selection.length; i++) {
-      let currentObj = this.selection[i];
-
-      let highlight = currentObj.copyGraph({
+    this.selection.forEach((selected) => {
+      let highlight = selected.copyGraph({
         addTo: this.overlay,
         color: "#E62",
         backface: "#E62",
       });
 
-      for (let j = 0; j < highlight.flatGraph.length; j++) {
-        highlight.flatGraph[j].color = "#E62";
-        highlight.flatGraph[j].backface = "#E62";
-      }
+      // Highlight all children
+      highlight.flatGraph.forEach((child) => {
+        child.color = '#E62';
+        child.backface = '#E62';
+      });
 
-      Zdog.extend(highlight, this.getWorldTransforms(currentObj));
-
-    }
+      // Apply parent transforms to selected object.
+      Zdog.extend(highlight, this.getWorldTransforms(selected));
+    });
 
     this.syncLayers();
-  };
+  }
 
-  this.getWorldTransforms = (target) => {
+  syncLayers() {
+    const scene = this.scene;
+    const targets = [this.overlay, this.widgets];
+
+    targets.forEach((target) => {
+      target.translate = scene.translate;
+      target.rotate = scene.rotate;
+      target.scale = scene.scale;
+      target.zoom = scene.zoom;
+      target.updateGraph();
+    });
+  }
+
+  getWorldTransforms(target) {
     let translate = new Zdog.Vector();
     let rotate = new Zdog.Vector();
     let scale = new Zdog.Vector({x: 1, y: 1, z: 1});
@@ -102,46 +159,29 @@ function Zoodle(scene, overlay, widgets) {
       rotate.z = Math.atan2(-down.x, right.x);
     }
     return {translate: translate, rotate: rotate, scale: scale};
-  };
+  }
 
-  this.dragStart = (ptr, target, x, y) => {
+  // input
+  click(ptr, target, x, y) {
+    this.select(target);
+  }
+
+  dragStart(ptr, target, x, y) {
+    // TODO: Edit Zfetch so it just returns null instead of the scene.
     if (!target || target.element === this.scene.element) {
       this.tool = "orbit";
     }
 
     this.tools[this.tool].start(ptr, target, x, y);
-  };
-
-  this.dragMove = (ptr, target, x, y) => {
-    this.tools[this.tool].move(ptr, target, x, y);
-  };
-
-  this.dragEnd = (ptr, target, x, y) => {
-    this.tools[this.tool].end(ptr, target, x, y);
-  };
-
-  this.fetch = new Zfetch({
-    scene: this.scene,
-    click: this.click,
-    dragStart: this.dragStart,
-    dragMove: this.dragMove,
-    dragEnd: this.dragEnd,
-  });
-
-  this.syncLayers = () => {
-    scene = this.scene;
-    targets = [this.overlay, this.widgets];
-
-    targets.forEach(target => {
-      target.zoom = scene.zoom;
-      target.scale = scene.scale;
-      target.rotate = scene.rotate;
-      target.translate = scene.translate;
-      target.updateRenderGraph();
-    });
   }
 
-  this.syncLayers();
+  dragMove(ptr, target, x, y) {
+    this.tools[this.tool].move(ptr, target, x, y);
+  }
+
+  dragEnd(ptr, target, x, y) {
+    this.tools[this.tool].end(ptr, target, x, y);
+  }
 }
 
 class Tool {
@@ -162,23 +202,113 @@ class OrbitTool extends Tool {
   }
 }
 
-class TranslateTool extends Tool {
-  constructor(editor) {
-    super(editor);
-    this.startPosition = new Zdog.Vector();
-  }
-  start(ptr, target, x, y) {
-    this.startPosition = this.editor.selected.translate.copy();
-  }
-  move(ptr, target, x, y) {
-    let delta = new Zdog.Vector({
-      x: x / this.editor.zoom,
-      y: y / this.editor.zoom,
+class Preset {
+  load(illo) {}
+}
+
+class Solar extends Preset {
+  load(illo) {
+    let sun = new Zdog.Shape({
+      addTo: illo,
+      stroke: 10,
+      color: gold,
     });
-    this.editor.selected.translate = this.startPosition
-      .copy()
-      .add(delta)
-      .rotate(this.editor.scene.rotate);
+
+    let arrow = new Zdog.Cone({
+      addTo: sun,
+      diameter: 1.5,
+      length: 1.5,
+      stroke: false,
+      translate: { y: -7.5 },
+      rotate: { x: -TAU / 4 },
+      color: orange,
+    });
+
+    new Zdog.Cylinder({
+      addTo: arrow,
+      color: orange,
+      stroke: false,
+      length: 1,
+      diameter: 0.75,
+      translate: { z: -.5 },
+    });
+
+    new Zdog.Shape({
+      addTo: sun,
+      stroke: 1,
+      translate: { x: 6 },
+      color: raisin,
+    });
+
+    let orbit = new Zdog.Anchor({
+      addTo: sun,
+      rotate: { x: TAU / 4 },
+    });
+
+    let orbitalProps = {
+      stroke: 0.5,
+      color: charcoal,
+      closed: false,
+    };
+
+    let quadrant = new Zdog.Shape({
+      addTo: orbit,
+      path: [
+        { x: 5.8, y: -1.55 },
+        { bezier: [
+            { x: 5.1, y: -4.17 },
+            { x: 2.71, y: -6 },
+            { x: 0, y: -6 },
+          ]},
+      ],
+    });
+
+    Zdog.extend(quadrant, orbitalProps);
+
+    quadrant.copy({
+      scale: { y: -1 },
+    });
+
+    quadrant = new Zdog.Shape({
+      addTo: orbit,
+      path: [
+        { x: 0, y: -6 },
+        { arc: [
+            { x: -6, y: -6 },
+            { x: -6, y: 0 },
+          ]},
+      ]
+    });
+
+    Zdog.extend(quadrant, orbitalProps);
+
+    quadrant.copy({
+      scale: { y: -1 },
+    });
+
+    new Zdog.Shape({
+      addTo: sun,
+      stroke: 2,
+      translate: { x: Math.cos(TAU/8)*8, z: Math.sin(TAU/8)*8 },
+      color: rose,
+    });
+
+    orbit.copyGraph({
+      rotate: { x: TAU / 4, z: TAU / 8 },
+      scale: 8/6,
+    });
+
+    new Zdog.Shape({
+      addTo: sun,
+      stroke: 2,
+      translate: { x: Math.cos(TAU/4)*10, z: Math.sin(TAU/4)*10 },
+      color: blueberry,
+    });
+
+    orbit.copyGraph({
+      rotate: { x: TAU / 4, z: TAU / 4 },
+      scale: 10 / 6,
+    });
   }
 }
 
@@ -197,169 +327,7 @@ const mint = "#CFD";
 const lime = "#4A2";
 const blueberry = "#359";
 
-function init() {
-  window.illoElem = document.getElementById("canvas");
-  window.widgetsElem = document.getElementById("widgets");
-  window.overlayElem = document.getElementById("overlay");
-
-  illoElem.setAttribute("width", illoElem.clientWidth);
-  illoElem.setAttribute("height", illoElem.clientHeight);
-
-  widgetsElem.setAttribute("width", illoElem.clientWidth);
-  widgetsElem.setAttribute("height", illoElem.clientHeight);
-  overlayElem.setAttribute("width", illoElem.clientWidth);
-  overlayElem.setAttribute("height", illoElem.clientHeight);
-
-  window.illo = new Zdog.Illustration({
-    element: illoElem,
-    zoom: 10,
-    rotate: { x: -Math.atan(1 / Math.sqrt(2)), y: TAU / 8 },
-    dragRotate: false,
-  });
-
-  window.widgets = new Zdog.Illustration({
-    element: widgetsElem,
-    zoom: 10,
-    dragRotate: false,
-  });
-
-  window.overlay = new Zdog.Illustration({
-    element: overlayElem,
-    zoom: 10,
-    dragRotate: false,
-  });
-
-  let sun = new Zdog.Shape({
-    addTo: window.illo,
-    stroke: 10,
-    color: gold,
-  });
-
-  new Zdog.Cone({
-    addTo: sun,
-    diameter: 1.5,
-    length: 1.5,
-    stroke: 0.1,
-    translate: { y: -7.5 },
-    rotate: { x: -TAU / 4 },
-    color: orange,
-  });
-
-  /*window.horn = new Zdog.Horn({
-    addTo: illo,
-    frontDiameter: 10,
-    rearDiameter: 2,
-    length: 20,
-    fill: true,
-    stroke: 0,
-    color: '#C25',
-    translate: { y: -9 },
-  });*/
-
-  new Zdog.Cylinder({
-    addTo: sun,
-    color: orange,
-    stroke: false,
-    length: 1,
-    diameter: 0.75,
-    translate: { y: -8 },
-    rotate: { x: -TAU / 4 },
-  });
-
-  new Zdog.Shape({
-    addTo: sun,
-    stroke: 1,
-    translate: { x: 6 },
-    color: raisin,
-  });
-
-  let orbit = new Zdog.Anchor({
-    addTo: sun,
-    rotate: { x: TAU / 4 },
-  });
-
-  let orbitalProps = {
-    stroke: 0.5,
-    color: charcoal,
-    closed: false,
-  };
-
-  let quadrant = new Zdog.Shape({
-    addTo: orbit,
-    path: [
-      { x: 5.8, y: -1.55 },
-      {
-        bezier: [
-          { x: 5.1, y: -4.17 },
-          { x: 2.71, y: -6 },
-          { x: 0, y: -6 },
-        ]
-      },
-    ],
-  });
-
-  Zdog.extend(quadrant, orbitalProps);
-
-  quadrant.copy({
-    scale: { y: -1 },
-  });
-
-  quadrant = new Zdog.Shape({
-    addTo: orbit,
-    path: [
-      { x: 0, y: -6 },
-      {
-        arc: [
-          { x: -6, y: -6 },
-          { x: -6, y: 0 },
-        ]
-      },
-    ]
-  });
-
-  Zdog.extend(quadrant, orbitalProps);
-
-  quadrant.copy({
-    scale: { y: -1 },
-  });
-
-  new Zdog.Shape({
-    addTo: sun,
-    stroke: 2,
-    translate: { x: Math.cos(TAU/8)*8, z: Math.sin(TAU/8)*8 },
-    color: rose,
-  });
-
-  orbit.copyGraph({
-    rotate: { x: TAU / 4, z: TAU / 8 },
-    scale: 8/6,
-  });
-
-  new Zdog.Shape({
-    addTo: sun,
-    stroke: 2,
-    translate: { x: Math.cos(TAU/4)*10, z: Math.sin(TAU/4)*10 },
-    color: blueberry,
-  });
-
-  orbit.copyGraph({
-    rotate: { x: TAU / 4, z: TAU / 4 },
-    scale: 10 / 6,
-  });
-
-  window.zoodle = new Zoodle(illo, overlay, widgets);
-}
-
-// TODO: Only update when we have something to update.
-function update() {
-  window.illo.updateRenderGraph();
-  window.widgets.updateRenderGraph();
-  window.overlay.updateRenderGraph();
-  window.illoElem.setAttribute("data-zdog", JSON.stringify(window.illo));
-  requestAnimationFrame(update);
-}
-
-init();
-
-update();
-
+const sceneElem = document.querySelector("#canvas");
+const overlayElem = document.querySelector("#overlay");
+const widgetsElem = document.querySelector("#widgets");
+const zoodle = new Zoodle(sceneElem, overlayElem, widgetsElem);
