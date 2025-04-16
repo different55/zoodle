@@ -59,9 +59,15 @@ class Zoodle {
     requestAnimationFrame(this.update.bind(this));
   }
 
+  // Perform a command and add it to the history.
   do(command) {
     this.history.push(command);
     command.do();
+  }
+
+  // Store a record of a command that has already been performed.
+  did(command) {
+    this.history.push(command);
   }
 
   toggleSelection(target) {
@@ -193,10 +199,6 @@ class Command {
   }
   do() {}
   undo() {}
-  canMerge(command) {
-    return false;
-  }
-  merge(command) {}
 }
 
 class SelectCommand extends Command {
@@ -231,21 +233,47 @@ class SelectCommand extends Command {
   }
 }
 
+class TranslateCommand extends Command {
+  constructor(editor, target, delta) {
+    super(editor);
+    if (!Array.isArray(target)) {
+      target = [target];
+    }
+    this.target = target;
+    this.delta = delta;
+    this.oldTranslate = target.map((t) => t.translate.copy());
+  }
+
+  do() {
+    if (!this.target) return console.error("Doing TranslateCommand with no target.");
+
+    this.target.forEach((t, i) => {
+      t.translate.set(this.oldTranslate[i]).add(this.delta);
+    });
+  }
+
+  undo() {
+    if (!this.target) return console.error("Undoing TranslateCommand with no target.");
+
+    this.target.forEach((t, i) => {
+      t.translate.set(this.oldTranslate[i]);
+    });
+  }
+}
+
 class History {
   constructor() {
     this.undoStack = [];
     this.redoStack = [];
   }
 
-  push(command) {
-    // Check to see if this command is mergeable into the last.
-    let lastCommand = this.undoStack[this.undoStack.length - 1];
-    if (lastCommand && lastCommand.canMerge(command)) {
-      lastCommand.merge(command);
-      return;
+  push(command, newCommand = true) {
+    if (newCommand) {
+      this.undoStack[this.undoStack.length - 1] = command;
+    } else {
+      this.undoStack.push(command);
     }
 
-    this.undoStack.push(command);
     this.redoStack = [];
   }
 
