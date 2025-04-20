@@ -34,7 +34,7 @@ class Zoodle {
     };
 
     this.presets = {
-      solar: new Solar(this.scene),
+      solar: new Solar(),
     }
 
     this.presets.solar.load(this.scene);
@@ -382,28 +382,28 @@ class Solar extends Preset {
       scale: { y: -1 },
     });
 
-    new Zdog.Shape({
-      addTo: sun,
-      stroke: 2,
-      translate: { x: Math.cos(TAU/8)*8, z: Math.sin(TAU/8)*8 },
-      color: rose,
-    });
-
-    orbit.copyGraph({
-      rotate: { x: TAU / 4, z: TAU / 8 },
+    let middleOrbit = orbit.copyGraph({
+      rotate: { x: TAU / 5, z: TAU / 8 },
       scale: 8/6,
     });
 
     new Zdog.Shape({
-      addTo: sun,
+      addTo: middleOrbit,
       stroke: 2,
-      translate: { x: Math.cos(TAU/4)*10, z: Math.sin(TAU/4)*10 },
-      color: blueberry,
+      translate: { x: 6 },
+      color: rose,
     });
 
-    orbit.copyGraph({
-      rotate: { x: TAU / 4, z: TAU / 4 },
+    let outerOrbit = orbit.copyGraph({
+      rotate: { x: TAU / 3, z: TAU / 4 },
       scale: 10 / 6,
+    });
+
+    new Zdog.Shape({
+      addTo: outerOrbit,
+      stroke: 2,
+      translate: { x: 6 },
+      color: blueberry,
     });
   }
 }
