@@ -137,8 +137,13 @@ main {
     filter: url(#better-highlight);
 }
 
-#widgets {
+#ui {
     z-index: 2;
+}
+
+#ui > *, #ui.active {
+    pointer-events: auto;
+    cursor: pointer;
 }
 
 /* Properties */

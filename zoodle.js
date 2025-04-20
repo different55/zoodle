@@ -1,5 +1,5 @@
 class Zoodle {
-  constructor(sceneElem, overlayElem, widgetsElem) {
+  constructor(sceneElem, overlayElem, uiElem) {
     // TODO: Calculate appropriate zooms and sizes
     let zoom = 10;
     let rotate = { x: -Math.atan(1 / Math.sqrt(2)), y: TAU / 8 };
@@ -18,8 +18,8 @@ class Zoodle {
       rotate: rotate,
       dragRotate: false,
     });
-    this.widgets = new Zdog.Illustration({
-      element: widgetsElem,
+    this.ui = new Zdog.Illustration({
+      element: uiElem,
       zoom: zoom,
       resize: 'fullscreen',
       rotate: rotate,
@@ -39,13 +39,25 @@ class Zoodle {
 
     this.presets.solar.load(this.scene);
 
-    this.fetch = new Zfetch({
+    this.sceneInput = new Zfetch({
       scene: this.scene,
       click: this.click.bind(this),
       dragStart: this.dragStart.bind(this),
       dragMove: this.dragMove.bind(this),
       dragEnd: this.dragEnd.bind(this),
     });
+
+    this.uiInput = new Zfetch({
+      scene: this.ui,
+      capture: true,
+      click: this.click.bind(this),
+      dragStart: this.dragStart.bind(this),
+      dragMove: this.dragMove.bind(this),
+      dragEnd: this.dragEnd.bind(this),
+    });
+
+    uiElem.addEventListener("gotpointercapture", _ => uiElem.classList.add("active"));
+    uiElem.addEventListener("lostpointercapture", _ => uiElem.classList.remove("active"));
 
     this.update();
   }
@@ -54,7 +66,7 @@ class Zoodle {
     this.syncLayers();
     this.scene.updateRenderGraph();
     this.overlay.updateRenderGraph();
-    this.widgets.updateRenderGraph();
+    this.ui.updateRenderGraph();
     //this.scene.element.setAttribute("data-zdog", JSON.stringify(this.scene));
     requestAnimationFrame(this.update.bind(this));
   }
@@ -107,7 +119,7 @@ class Zoodle {
 
   syncLayers() {
     const scene = this.scene;
-    const targets = [this.overlay, this.widgets];
+    const targets = [this.overlay, this.ui];
 
     targets.forEach((target) => {
       target.translate = scene.translate;
@@ -185,10 +197,10 @@ class Tool {
 
 class OrbitTool extends Tool {
   start(ptr, target, x, y) {
-    this.editor.fetch.rotateStart(ptr, target, x, y);
+    this.editor.sceneInput.rotateStart(ptr, target, x, y);
   }
   move(ptr, target, x, y) {
-    this.editor.fetch.rotateMove(ptr, target, x, y);
+    this.editor.sceneInput.rotateMove(ptr, target, x, y);
     this.editor.syncLayers();
   }
 }
@@ -251,7 +263,6 @@ class TranslateCommand extends Command {
       t.translate.set(this.oldTranslate[i]).add(this.delta);
     });
   }
-
   undo() {
     if (!this.target) return console.error("Undoing TranslateCommand with no target.");
 
@@ -425,5 +436,5 @@ const blueberry = "#359";
 
 const sceneElem = document.querySelector("#canvas");
 const overlayElem = document.querySelector("#overlay");
-const widgetsElem = document.querySelector("#widgets");
-const zoodle = new Zoodle(sceneElem, overlayElem, widgetsElem);
+const uiElem = document.querySelector("#ui");
+const zoodle = new Zoodle(sceneElem, overlayElem, uiElem);
