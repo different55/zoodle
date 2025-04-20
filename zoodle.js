@@ -31,8 +31,9 @@ class Zoodle {
     this.tools = {
       orbit: new OrbitTool(this),
       translate: new TranslateTool(this),
+      rotate: new RotateTool(this),
     };
-    this.tool = this.tools.translate;
+    this.tool = this.tools.rotate;
 
     this.presets = {
       solar: new Solar(),
@@ -410,6 +411,101 @@ class TranslateTool extends Tool {
   static get MODE_VIEW() { return 'v'; }
 }
 
+// TODO: I think this is going to need to run on basis vectors like getWorldTransforms.
+class RotateTool extends Tool {
+  constructor(editor) {
+    super(editor);
+    this.targets = null;
+    this.startRotate = null;
+    this.mode = RotateTool.MODE_NONE;
+    this.widget = null;
+  }
+
+  start(ptr, target, x, y) {
+    this.widget = target;
+    this.targets = this.editor.selection;
+    this.mode = RotateTool.MODE_NONE;
+    if (!this.targets.length || target.layer !== Zoodle.LAYER_UI || !target.color) {
+      return;
+    }
+
+    this.startRotate = this.targets.map( t => t.rotate.copy() );
+
+    switch (target.color) {
+      case rose:
+        this.mode = RotateTool.MODE_X;
+        break;
+      case lime:
+        this.mode = RotateTool.MODE_Y;
+        break;
+      case blueberry:
+        this.mode = RotateTool.MODE_Z;
+        break;
+    }
+  }
+  move( ptr, target, x, y ) {
+    if (!this.mode) { return; }
+    console.log("movin");
+
+    let displaySize = Math.min( this.editor.scene.width, this.editor.scene.height );
+    x /= displaySize / Math.PI * Zdog.TAU;
+    y /= displaySize / Math.PI * Zdog.TAU;
+    let direction = this.widget.renderNormal;
+    let delta = this.editor.getAxisDistance(x, y, Math.atan2(direction.y, direction.x) + TAU/4 );
+    this.targets.forEach((t, i) => {
+      t.rotate[this.mode] = this.startRotate[i][this.mode] + delta;
+    });
+    this.editor.updateHighlights();
+    this.editor.updateUI();
+  }
+  // TODO: Let's stash `delta` somewhere so we don't have to recalculate it in end()
+  end( ptr, target, x, y ) {
+    if (!this.mode) { return; }
+    // ensure any final adjustments are applied.
+    this.move( ptr, target, x, y );
+    let displaySize = Math.min( this.editor.scene.width, this.editor.scene.height );
+    x /= displaySize * Math.PI * Zdog.TAU;
+    y /= displaySize * Math.PI * Zdog.TAU;
+    let direction = this.widget.renderNormal;
+    let delta = this.editor.getAxisDistance( x, y, Math.atan2(direction.y, direction.x) + TAU/4 );
+    let command = new RotateCommand(this.editor, this.targets, new Zdog.Vector({[this.mode]: delta}));
+    this.editor.did(command);
+  }
+  drawWidget(targets) {
+    const widgetDiameter = 10;
+    const widgetStroke = 0.75;
+
+    let origin = new Zdog.Shape({
+      stroke: .5,
+      color: lace,
+    });
+    let zRing = new Zdog.Ellipse({
+      diameter: widgetDiameter,
+      stroke: widgetStroke,
+      color: blueberry,
+    });
+    let yRing = zRing.copyGraph({
+      rotate: { x: TAU/4 },
+      color: lime,
+    });
+    let xRing = zRing.copyGraph({
+      rotate: { y: TAU/4 },
+      color: rose,
+    });
+    targets.forEach(t => {
+      origin.copyGraph({ addTo: t, scale: 1/t.scale.x });
+      zRing.copyGraph({ addTo: t, scale: 1/t.scale.x });
+      yRing.copyGraph({ addTo: t, scale: 1/t.scale.x });
+      xRing.copyGraph({ addTo: t, scale: 1/t.scale.x });
+    });
+  }
+
+  static get MODE_NONE() { return ''; }
+  static get MODE_X() { return 'x'; }
+  static get MODE_Y() { return 'y'; }
+  static get MODE_Z() { return 'z'; }
+}
+
 class Command {
   constructor(editor) {
     this.editor = editor;
@@ -473,6 +569,35 @@ class TranslateCommand extends Command {
 
     this.target.forEach((t, i) => {
       t.translate.set(this.oldTranslate[i]);
+    });
+  }
+}
+
+class RotateCommand extends Command {
+  // TODO: Add oldTranslate and oldRotate to the constructor, or maybe a flag to tell it if it's getting new or old transforms.
+  constructor(editor, target, delta) {
+    super(editor);
+    if (!Array.isArray(target)) {
+      target = [target];
+    }
+    this.target = target;
+    this.delta = delta;
+    this.oldRotate = target.map((t) => t.rotate.copy());
+  }
+
+  do() {
+    // TODO: Probably better to just throw in the constructor.
+    if (!this.target) return console.error("Doing RotateCommand with no target.");
+
+    this.target.forEach((t, i) => {
+      t.rotate.set(this.oldRotate[i]).add(this.delta);
+    });
+  }
+  undo() {
+    if (!this.target) return console.error("Undoing RotateCommand with no target.");
+
+    this.target.forEach((t, i) => {
+      t.rotate.set(this.oldRotate[i]);
     });
   }
 }
