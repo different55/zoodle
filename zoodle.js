@@ -28,10 +28,11 @@ class Zoodle {
 
     this.selection = [];
     this.history = new History();
-    this.tool = "orbit";
     this.tools = {
       orbit: new OrbitTool(this),
+      translate: new TranslateTool(this),
     };
+    this.tool = this.tools.translate;
 
     this.presets = {
       solar: new Solar(),
@@ -71,6 +72,12 @@ class Zoodle {
     requestAnimationFrame(this.update.bind(this));
   }
 
+  set tool(tool) {
+    this._tool = tool;
+    this.updateUI();
+  }
+  get tool() { return this._tool; }
+
   // Perform a command and add it to the history.
   do(command) {
     this.history.push(command);
@@ -89,21 +96,24 @@ class Zoodle {
     } else {
       this.selection.push(target);
     }
-    this.updateHighlight();
+    this.updateHighlights();
+    this.updateUI();
   }
 
   clearSelection() {
     this.selection = [];
-    this.updateHighlight();
+    this.updateHighlights();
+    this.updateUI();
   }
 
-  updateHighlight() {
+  updateHighlights() {
     this.overlay.children = [];
     this.selection.forEach((selected) => {
       let highlight = selected.copyGraph({
         addTo: this.overlay,
         color: "#E62",
         backface: "#E62",
+        ...this.getWorldTransforms(selected),
       });
 
       // Highlight all children
@@ -113,8 +123,26 @@ class Zoodle {
       });
 
       // Apply parent transforms to selected object.
-      Zdog.extend(highlight, this.getWorldTransforms(selected));
+      // Zdog.extend(highlight, this.getWorldTransforms(selected));
     });
+  }
+
+  updateUI() {
+    this.ui.children = [];
+
+    if (this.selection.length === 0) {
+      return;
+    }
+
+    // Create anchors matching selected objects.
+    let targets = this.selection.map((target) => {
+      return new Zdog.Anchor({
+        addTo: this.ui,
+        ...this.getWorldTransforms(target),
+      });
+    });
+
+    this.tool.drawWidget(targets);
   }
 
   syncLayers() {
@@ -165,25 +193,50 @@ class Zoodle {
 
   // input
   click(ptr, target, x, y) {
+    target.layer = this.getLayer(target.element)
     this.do(new SelectCommand(this, target));
   }
 
   dragStart(ptr, target, x, y) {
-    // TODO: Edit Zfetch so it just returns null instead of the scene.
-    if (!target || target.element === this.scene.element) {
-      this.tool = "orbit";
+    target.layer = this.getLayer(target.element);
+    if (!target || !target.addTo) {
+      this.tool = new TemporaryTool(this, this.tool, this.tools.orbit, true);
     }
 
-    this.tools[this.tool].start(ptr, target, x, y);
+    this.tool.start(ptr, target, x, y);
   }
 
   dragMove(ptr, target, x, y) {
-    this.tools[this.tool].move(ptr, target, x, y);
+    target.layer = this.getLayer(target.element);
+    this.tool.move(ptr, target, x, y);
   }
 
   dragEnd(ptr, target, x, y) {
-    this.tools[this.tool].end(ptr, target, x, y);
+    target.layer = this.getLayer(target.element);
+    this.tool.end(ptr, target, x, y);
   }
+
+  getLayer(element) {
+    switch (element) {
+      case this.scene.element:
+        return Zoodle.LAYER_CANVAS;
+      case this.overlay.element:
+        return Zoodle.LAYER_OVERLAY;
+      case this.ui.element:
+        return Zoodle.LAYER_UI;
+      default:
+        console.error(`Unsupported element ${element}`);
+    }
+  }
+
+  // returns the distance of a point (x, y) from the origin along the axis defined by the angle.
+  getAxisDistance(x, y, angle) {
+    return x * Math.cos(angle) + y * Math.sin(angle);
+  }
+
+  static get LAYER_CANVAS() { return 1; }
+  static get LAYER_OVERLAY() { return 2; }
+  static get LAYER_UI() { return 3; }
 }
 
 class Tool {
@@ -193,6 +246,32 @@ class Tool {
   start(ptr, target, x, y) {}
   move(ptr, target, x, y) {}
   end(ptr, target, x, y) {}
+  drawWidget(targets) {}
+}
+
+// this tool performs the actions of another tool without hiding the widgets of the original
+class TemporaryTool extends Tool {
+  constructor(editor, style, substance, autoRestore = true) {
+    super(editor);
+    this.style = style;
+    this.substance = substance;
+    this.autoRestore = autoRestore;
+  }
+  start(ptr, target, x, y) {
+    this.substance.start(ptr, target, x, y);
+  }
+  move(ptr, target, x, y) {
+    this.substance.move(ptr, target, x, y);
+  }
+  end(ptr, target, x, y) {
+    this.substance.end(ptr, target, x, y);
+    if (this.autoRestore) {
+      this.editor.tool = this.style;
+    }
+  }
+  drawWidget(targets) {
+    this.style.drawWidget(targets);
+  }
 }
 
 class OrbitTool extends Tool {
@@ -203,6 +282,126 @@ class OrbitTool extends Tool {
     this.editor.sceneInput.rotateMove(ptr, target, x, y);
     this.editor.syncLayers();
   }
+}
+
+class TranslateTool extends Tool {
+  constructor(editor) {
+    super(editor);
+    this.targets = null;
+    this.startTranslate = null;
+    this.mode = TranslateTool.MODE_NONE;
+    this.widget = null;
+  }
+  start(ptr, target, x, y) {
+    this.widget = target;
+    // Ensure our target is the base and not the tip.
+    if (this.widget.diameter)
+        this.widget = this.widget.addTo;
+    this.targets = this.editor.selection;
+    this.startTranslate = this.targets.map((t) => t.translate.copy());
+    if (target.layer !== Zoodle.LAYER_UI) {
+      this.mode = TranslateTool.MODE_VIEW;
+      return;
+    }
+    switch (target.color) {
+      case rose:
+        this.mode = TranslateTool.MODE_X;
+        break;
+      case lime:
+        this.mode = TranslateTool.MODE_Y;
+        break;
+      case blueberry:
+        this.mode = TranslateTool.MODE_Z;
+        break;
+      default:
+        this.mode = TranslateTool.MODE_VIEW;
+        break;
+    }
+  }
+  move(ptr, target, x, y) {
+    if (!this.mode) { return; }
+    let direction = this.widget.renderNormal; // TODO: Break out into a function.
+    let delta = this.editor.getAxisDistance(x, y, Math.atan2(direction.y, direction.x));
+    delta /= -this.editor.scene.zoom; // TODO: Include pixel ratio as well.
+    delta *= this.widget.scale.x;
+    console.log("movin", x, y, direction, delta);
+    this.editor.updateHighlights();
+    this.editor.updateUI();
+    //let delta = new Zdog.Vector({x: x, y: y}).magnitude2d();
+    this.targets.forEach((t, i) => {
+      t.translate[this.mode] = this.startTranslate[i][this.mode] + delta;
+    });
+
+  }
+  end(ptr, target, x, y) {
+    if (!this.mode) { return; }
+    // ensure any final adjustments are applied.
+    this.move(ptr, target, x, y);
+    let direction = this.widget.renderNormal; // TODO: Break out into a function.
+    let delta = this.editor.getAxisDistance(x, y, Math.atan2(direction.y, direction.x));
+    delta /= -this.editor.scene.zoom;
+    delta /= this.widget.scale;
+    let command = new TranslateCommand(this.editor, this.targets, new Zdog.Vector({[this.mode]: delta}));
+    this.editor.did(command);
+  }
+  drawWidget(targets) {
+    let origin = new Zdog.Shape({
+      stroke: .5,
+      color: lace,
+    });
+    let base = new Zdog.Shape({
+      path: [ { z: -1.5 }, { z: 1.5 } ],
+      stroke: 1,
+      translate: { z: 3 },
+    });
+    new Zdog.Cone({
+      addTo: base,
+      diameter: 2,
+      length: 1.5,
+      stroke: .5,
+      translate: { z: 1.5 },
+    });
+    let z = base.copyGraph({
+      color: blueberry,
+    });
+    z.children[0].color = blueberry;
+    let y = base.copyGraph({
+      color: lime,
+      rotate: { x: -TAU/4 },
+      translate: { y: 3 },
+    });
+    y.children[0].color = lime;
+    let x = base.copyGraph({
+      color: rose,
+      rotate: { y: -TAU/4 },
+      translate: { x: 3 },
+    });
+    x.children[0].color = rose;
+    targets.forEach(t => {
+      origin.copyGraph({ addTo: t, scale: 1/t.scale.x });
+      z.copyGraph({
+        addTo: t,
+        scale: 1/t.scale.x,
+        translate: { z: 3/t.scale.x },
+      });
+      y.copyGraph({
+        addTo: t,
+        scale: 1/t.scale.x,
+        translate: { y: 3/t.scale.x },
+      });
+      x.copyGraph({
+        addTo: t,
+        scale: 1/t.scale.x,
+        translate: { x: 3/t.scale.x },
+      });
+    });
+  }
+
+  static get MODE_NONE() { return ''; }
+  static get MODE_X() { return 'x'; }
+  static get MODE_Y() { return 'y'; }
+  static get MODE_Z() { return 'z'; }
+  static get MODE_VIEW() { return 'v'; }
 }
 
 class Command {
