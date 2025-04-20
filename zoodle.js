@@ -275,11 +275,20 @@ class TemporaryTool extends Tool {
 }
 
 class OrbitTool extends Tool {
+  constructor(editor) {
+    super(editor);
+    this.rotateStart = null;
+  }
   start(ptr, target, x, y) {
-    this.editor.sceneInput.rotateStart(ptr, target, x, y);
+    this.rotateStart = this.editor.scene.rotate.copy();
   }
   move(ptr, target, x, y) {
-    this.editor.sceneInput.rotateMove(ptr, target, x, y);
+    let displaySize = Math.min( this.editor.scene.width, this.editor.scene.height );
+    let moveRY = x / displaySize * Math.PI * Zdog.TAU;
+    let moveRX = y / displaySize * Math.PI * Zdog.TAU;
+    this.editor.scene.rotate.x = this.rotateStart.x - moveRX;
+    this.editor.scene.rotate.y = this.rotateStart.y - moveRY;
+
     this.editor.syncLayers();
   }
 }
@@ -324,7 +333,6 @@ class TranslateTool extends Tool {
     let delta = this.editor.getAxisDistance(x, y, Math.atan2(direction.y, direction.x));
     delta /= -this.editor.scene.zoom; // TODO: Include pixel ratio as well.
     delta *= this.widget.scale.x;
-    console.log("movin", x, y, direction, delta);
     this.editor.updateHighlights();
     this.editor.updateUI();
     //let delta = new Zdog.Vector({x: x, y: y}).magnitude2d();
