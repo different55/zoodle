@@ -303,15 +303,15 @@ class TranslateTool extends Tool {
   }
   start(ptr, target, x, y) {
     this.widget = target;
-    // Ensure our target is the base and not the tip.
-    if (this.widget.diameter)
-        this.widget = this.widget.addTo;
     this.targets = this.editor.selection;
-    this.startTranslate = this.targets.map((t) => t.translate.copy());
-    if (target.layer !== Zoodle.LAYER_UI) {
-      this.mode = TranslateTool.MODE_VIEW;
+    this.mode = TranslateTool.MODE_NONE;
+    if (!this.targets.length || target.layer !== Zoodle.LAYER_UI || !target.color) {
       return;
     }
+    // Ensure our widget target is the base and not the tip.
+    if (this.widget.diameter)
+        this.widget = this.widget.addTo;
+    this.startTranslate = this.targets.map((t) => t.translate.copy());
     switch (target.color) {
       case rose:
         this.mode = TranslateTool.MODE_X;
@@ -323,7 +323,7 @@ class TranslateTool extends Tool {
         this.mode = TranslateTool.MODE_Z;
         break;
       default:
-        this.mode = TranslateTool.MODE_VIEW;
+        this.mode = TranslateTool.MODE_NONE;
         break;
     }
   }
@@ -333,13 +333,11 @@ class TranslateTool extends Tool {
     let delta = this.editor.getAxisDistance(x, y, Math.atan2(direction.y, direction.x));
     delta /= -this.editor.scene.zoom; // TODO: Include pixel ratio as well.
     delta *= this.widget.scale.x;
-    this.editor.updateHighlights();
-    this.editor.updateUI();
-    //let delta = new Zdog.Vector({x: x, y: y}).magnitude2d();
     this.targets.forEach((t, i) => {
       t.translate[this.mode] = this.startTranslate[i][this.mode] + delta;
     });
-
+    this.editor.updateHighlights();
+    this.editor.updateUI();
   }
   end(ptr, target, x, y) {
     if (!this.mode) { return; }
