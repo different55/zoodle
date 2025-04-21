@@ -33,7 +33,7 @@ class Zoodle {
       translate: new TranslateTool(this),
       rotate: new RotateTool(this),
     };
-    this.tool = this.tools.rotate;
+    this.tool = this.tools.translate;
 
     this.props = props;
 
@@ -62,6 +62,7 @@ class Zoodle {
 
     uiElem.addEventListener("gotpointercapture", _ => uiElem.classList.add("active"));
     uiElem.addEventListener("lostpointercapture", _ => uiElem.classList.remove("active"));
+    props.addEventListener("input", this.readProperty.bind(this));
 
     this.update();
     this.updateProperties();
@@ -151,6 +152,25 @@ class Zoodle {
     this.tool.drawWidget(targets);
   }
 
+  // Read a property from the panel into object(s)
+  readProperty(e) {
+    let prop = e.target.closest(".prop");
+    if (!prop) {
+      return;
+    }
+    let value = this.getProperty(prop);
+    // TODO: Make a command.
+    let targets = this.selection;
+    targets.forEach((target) => {
+      target[prop.id] = value;
+      if (target.updatePath) target.updatePath();
+      target.updateGraph();
+    });
+    this.updateHighlights();
+    this.updateUI();
+  }
+
+  // Update the properties panel to match the selected object(s)
   updateProperties() {
     // Set properties header.
     let header = props.querySelector("h2");
@@ -185,6 +205,7 @@ class Zoodle {
     }
   }
 
+  // Update the properties panel to match one specific object, optionally merging with the properties that are already there.
   setProperties(srcObj, updateValues = true) {
     let srcProps = srcObj.constructor.optionKeys;
     let destProps = this.props.querySelectorAll(".prop");
@@ -208,6 +229,7 @@ class Zoodle {
     });
   }
 
+  // Get the type of a property.
   getPropertyType(prop) {
     let types = ["vector", "number", "color", "bool"];
     for (let i = 0; i < types.length; i++) {
@@ -218,6 +240,7 @@ class Zoodle {
     return null;
   }
 
+  // Set the value of a property in the properties panel.
   setProperty(srcObj, prop) {
     let type = this.getPropertyType(prop);
 
@@ -260,6 +283,7 @@ class Zoodle {
     return "#000000";
   }
 
+  // Get the value of a property in the properties panel.
   getProperty(prop) {
     let type = this.getPropertyType(prop);
 
@@ -481,6 +505,7 @@ class TranslateTool extends Tool {
     });
     this.editor.updateHighlights();
     this.editor.updateUI();
+    this.editor.updateProperties();
   }
   end(ptr, target, x, y) {
     if (!this.mode) { return; }
@@ -599,6 +624,7 @@ class RotateTool extends Tool {
     });
     this.editor.updateHighlights();
     this.editor.updateUI();
+    this.editor.updateProperties();
   }
   // TODO: Let's stash `delta` somewhere so we don't have to recalculate it in end()
   end( ptr, target, x, y ) {
