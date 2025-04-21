@@ -155,6 +155,8 @@ main {
     background: var(--lace);
     color: var(--raisin);
     border-radius: var(--roundness);
+    border: 2px solid var(--raisin);
+    box-shadow: .5px .5px 0 .5px var(--raisin);
 }
 
 .prop-group {
@@ -168,21 +170,44 @@ main {
     display: flex;
     flex-flow: row wrap;
     align-items: center;
+    justify-content: space-between;
 }
 
 .prop h4 {
     flex-basis: 100%;
+    text-align: center;
+    line-height: 1;
+    margin-top: .5rem;
+}
+
+.prop.vector label {
+    margin-right: 0 !important;
+}
+
+.prop.vector input + label {
+    margin-left: .75rem;
 }
 
 .prop input[type="number"] {
     width: 1rem;
-    flex-grow: 1;
+    flex-grow: 10;
+}
+
+.prop input {
+    margin: .25rem 0;
+    padding: .125rem;
+    text-align: center;
+    max-width: 6rem;
+    border: 1px solid var(--raisin);
+    box-shadow: .5px .5px 0 .5px var(--raisin);
+    border-radius: calc( var(--roundness) / 2 );
 }
 
 #properties label {
     font-weight: bold;
     font-size: 1em;
-    margin: 0 .25rem;
+    margin-right: .25rem;
+    flex-grow: 1;
 }
 
 #properties.hidden .prop-group, #properties .hidden {
