@@ -12,12 +12,12 @@
     <body>
         <main>
             <menu>
-                <li><button id="select">Select</button></li>
-                <li><button id="grab">Grab</button></li>
-                <li><button id="rotate">Rotate</button></li>
-                <li><button id="scale">Scale</button></li>
-                <li><button id="delete">Delete</button></li>
-                <li><button id="add">Add</button></li>
+                <li><button id="tool-select">Select</button></li>
+                <li><button id="tool-translate">Translate</button></li>
+                <li><button id="tool-rotate">Rotate</button></li>
+                <li><button id="tool-scale">Scale</button></li>
+                <li><button id="tool-delete">Delete</button></li>
+                <li><button id="tool-add">Add</button></li>
             </menu>
             <div class="canvas-container">
                 <svg id="ui" class="canvas-layer" xmlns="http://www.w3.org/2000/svg"></svg>
@@ -34,7 +34,89 @@
                 </svg>
             </div>
             <aside id="properties">
-
+                <h2>No objects selected</h2>
+                <hr />
+                <div class="prop-group">
+                    <h3>Transform</h3>
+                    <div id="translate" class="vector prop">
+                        <h4>Translate</h4>
+                        <label for="translate-x">X</label>
+                        <input type="number" id="translate-x" />
+                        <label for="translate-y">Y</label>
+                        <input type="number" id="translate-y" />
+                        <label for="translate-z">Z</label>
+                        <input type="number" id="translate-z" />
+                    </div>
+                    <div id="rotate" class="vector prop">
+                        <h4>Rotate</h4>
+                        <label for="rotate-x">X</label>
+                        <input type="number" id="rotate-x" />
+                        <label for="rotate-y">Y</label>
+                        <input type="number" id="rotate-y" />
+                        <label for="rotate-z">Z</label>
+                        <input type="number" id="rotate-z" />
+                    </div>
+                    <div id="scale" class="vector prop">
+                        <h4>Scale</h4> <label for="scale-x">X</label>
+                        <input type="number" id="scale-x" />
+                        <label for="scale-y">Y</label>
+                        <input type="number" id="scale-y" />
+                        <label for="scale-z">Z</label>
+                        <input type="number" id="scale-z" />
+                    </div>
+                </div>
+                <div class="prop-group">
+                    <h3>Shape</h3>
+                    <div id="width" class="number prop">
+                        <label for="width-value">Width</label>
+                        <input type="number" id="width-value" />
+                    </div>
+                    <div id="height" class="number prop">
+                        <label for="height-value">Height</label>
+                        <input type="number" id="height-value" />
+                    </div>
+                    <div id="depth" class="number prop">
+                        <label for="depth-value">Depth</label>
+                        <input type="number" id="depth-value" />
+                    </div>
+                    <div id="length" class="number prop">
+                        <label for="length-value">Length</label>
+                        <input type="number" id="length-value" />
+                    </div>
+                    <div id="radius" class="number prop">
+                        <label for="radius-value">Radius</label>
+                        <input type="number" id="radius-value" />
+                    </div>
+                    <div id="diameter" class="number prop">
+                        <label for="diameter-value">Diameter</label>
+                        <input type="number" id="diameter-value" />
+                    </div>
+                    <div id="sides" class="number prop">
+                        <label for="sides-value">Sides</label>
+                        <input type="number" id="sides-value" />
+                    </div>
+                </div>
+                <div class="prop-group">
+                    <h3>Appearance</h3>
+                    <div id="color" class="color prop">
+                        <label for="color-value">Color</label>
+                        <input type="color" id="color-value" />
+                    </div>
+                    <div id="stroke" class="color prop">
+                        <label for="stroke-value">Stroke</label>
+                        <input type="number" id="stroke-value" />
+                    </div>
+                    <div id="fill" class="optional color prop">
+                        <label for="fill-enabled">Fill</label>
+                        <input type="checkbox" id="fill-enabled" />
+                        <input type="color" id="fill-value" />
+                    </div>
+                    <div id="backface" class="optional color prop">
+                        <label for="backface-enabled">Backface</label>
+                        <input type="checkbox" id="backface-enabled" />
+                        <input type="color" id="backface-value" />
+                    </div>
+                </div>
             </aside>
         </main>
         <footer>

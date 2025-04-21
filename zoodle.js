@@ -1,5 +1,5 @@
 class Zoodle {
-  constructor(sceneElem, overlayElem, uiElem) {
+  constructor(sceneElem, overlayElem, uiElem, props) {
     // TODO: Calculate appropriate zooms and sizes
     let zoom = 10;
     let rotate = { x: -Math.atan(1 / Math.sqrt(2)), y: TAU / 8 };
@@ -35,6 +35,8 @@ class Zoodle {
     };
     this.tool = this.tools.rotate;
 
+    this.props = props;
+
     this.presets = {
       solar: new Solar(),
     }
@@ -62,6 +64,7 @@ class Zoodle {
     uiElem.addEventListener("lostpointercapture", _ => uiElem.classList.remove("active"));
 
     this.update();
+    this.updateProperties();
   }
 
   update() {
@@ -97,12 +100,14 @@ class Zoodle {
     } else {
       this.selection.push(target);
     }
+    this.updateProperties();
     this.updateHighlights();
     this.updateUI();
   }
 
   clearSelection() {
     this.selection = [];
+    this.updateProperties();
     this.updateHighlights();
     this.updateUI();
   }
@@ -144,6 +149,143 @@ class Zoodle {
     });
 
     this.tool.drawWidget(targets);
+  }
+
+  updateProperties() {
+    // Set properties header.
+    let header = props.querySelector("h2");
+    if (this.selection.length === 0) {
+      header.textContent = "No objects selected";
+    } else if (this.selection.length === 1) {
+      let path = "";
+      let target = this.selection[0];
+      while (target.addTo) {
+        path = `/${target.constructor.type}${path}`;
+        target = target.addTo;
+      }
+      header.textContent = path;
+    } else {
+        header.textContent = `${this.selection.length} objects selected`;
+    }
+
+    // Shortcut: Just hide all entries if nothing's selected.
+    if (this.selection.length === 0) {
+      props.classList.add("hidden");
+      return;
+    }
+    props.classList.remove("hidden");
+
+    // Set properties from first selected object.
+    this.setProperties(this.selection[0], true);
+
+    // Condense properties from other selected objects.
+    for (let i = 1; i < this.selection.length; i++) {
+      let target = this.selection[i];
+      this.setProperties(target, false);
+    }
+  }
+
+  setProperties(srcObj, updateValues = true) {
+    let srcProps = srcObj.constructor.optionKeys;
+    let destProps = this.props.querySelectorAll(".prop");
+    destProps.forEach(prop => {
+      if (!srcProps.includes(prop.id)) {
+        prop.classList.add("hidden");
+        return;
+      }
+      prop.classList.remove("hidden");
+
+      if (updateValues) {
+        this.setProperty(srcObj, prop);
+        return;
+      }
+
+      let newValue = this.getProperty(prop);
+      let oldValue = srcObj[prop.id];
+      if (newValue != oldValue) {
+        prop.classList.add("hidden");
+      }
+    });
+  }
+
+  getPropertyType(prop) {
+    let types = ["vector", "number", "color", "bool"];
+    for (let i = 0; i < types.length; i++) {
+      if (prop.classList.contains(types[i])) {
+        return types[i];
+      }
+    }
+    return null;
+  }
+
+  setProperty(srcObj, prop) {
+    let type = this.getPropertyType(prop);
+
+    // check for optional properties that are either false or <value>.
+    const optional = prop.classList.contains("optional");
+    if (optional) {
+      document.getElementById(`${prop.id}-enabled`).enabled = srcObj[prop.id] !== false;
+    }
+
+    const input = document.getElementById(`${prop.id}-value`);
+
+    switch (type) {
+      case "bool":
+        input.checked = srcObj[prop.id] != false;
+        break;
+      case "number":
+        input.valueAsNumber = srcObj[prop.id];
+        break;
+      case "vector":
+        let {x, y, z} = srcObj[prop.id];
+        document.getElementById(`${prop.id}-x`).value = x;
+        document.getElementById(`${prop.id}-y`).value = y;
+        document.getElementById(`${prop.id}-z`).value = z;
+        break;
+      case "color":
+        input.value = this.normalizeColor(srcObj[prop.id]);
+        break;
+    }
+  }
+
+  normalizeColor(color) {
+    if (/^#[0-9a-fA-F]{6}$/.test(color)) {
+      return color;
+    }
+
+    if (/^#[0-9a-fA-F]{3}$/.test(color)) {
+      return `#${color[1]}${color[1]}${color[2]}${color[2]}${color[3]}${color[3]}`;
+    }
+
+    return "#000000";
+  }
+
+  getProperty(prop) {
+    let type = this.getPropertyType(prop);
+
+    // check for optional properties that are either false or <value>.
+    const optional = prop.classList.contains("optional");
+    if (optional && !document.getElementById(`${prop.id}-enabled`).checked) {
+      return false;
+    }
+
+    const input = document.getElementById(`${prop.id}-value`);
+
+    switch (type) {
+      case "bool":
+        return input.checked;
+      case "number":
+        return input.valueAsNumber;
+      case "vector":
+        return {
+          x: document.getElementById(`${prop.id}-x`).valueAsNumber,
+          y: document.getElementById(`${prop.id}-y`).valueAsNumber,
+          z: document.getElementById(`${prop.id}-z`).valueAsNumber,
+        };
+      case "color":
+        return input.value;
+    }
+    return null;
   }
 
   syncLayers() {
@@ -767,4 +909,5 @@ const blueberry = "#359";
 const sceneElem = document.querySelector("#canvas");
 const overlayElem = document.querySelector("#overlay");
 const uiElem = document.querySelector("#ui");
-const zoodle = new Zoodle(sceneElem, overlayElem, uiElem);
+const props = document.querySelector("#properties");
+const zoodle = new Zoodle(sceneElem, overlayElem, uiElem, props);
