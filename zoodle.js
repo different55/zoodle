@@ -94,6 +94,14 @@ class Zoodle {
     this.history.push(command);
   }
 
+  setSelection(targets) {
+    if (!Array.isArray(targets)) {
+      targets = [targets];
+    }
+
+    this.selection = targets;
+  }
+
   toggleSelection(target) {
     const index = this.selection.indexOf(target);
     if (index !== -1) {
@@ -101,16 +109,10 @@ class Zoodle {
     } else {
       this.selection.push(target);
     }
-    this.updateProperties();
-    this.updateHighlights();
-    this.updateUI();
   }
 
   clearSelection() {
-    this.selection = [];
-    this.updateProperties();
-    this.updateHighlights();
-    this.updateUI();
+    this.selection.length = 0;
   }
 
   updateHighlights() {
@@ -683,8 +685,9 @@ class Command {
 }
 
 class SelectCommand extends Command {
-  constructor(editor, target) {
+  constructor(editor, target, replace = false) {
     super(editor);
+    this.replace = replace;
     this.oldSelection = null;
 
     // If this is a compositeChild, find its parent
@@ -698,19 +701,24 @@ class SelectCommand extends Command {
     this.target = target;
   }
   do() {
+    this.oldSelection = this.editor.selection;
     if (!this.target) {
-      this.oldSelection = this.editor.selection;
       this.editor.clearSelection();
+    } else if (this.replace) {
+      this.editor.setSelection(this.target);
     } else {
       this.editor.toggleSelection(this.target);
     }
+    this.refresh();
   }
   undo() {
-    if (!this.target) {
-      this.editor.selection = this.oldSelection;
-    } else {
-      this.editor.toggleSelection(this.target);
-    }
+    this.editor.selection = this.oldSelection;
+    this.refresh();
+  }
+  refresh() {
+    this.editor.updateHighlights();
+    this.editor.updateUI();
+    this.editor.updateProperties();
   }
 }
 
