@@ -24,6 +24,7 @@
                 <svg id="overlay" class="canvas-layer" xmlns="http://www.w3.org/2000/svg"></svg>
                 <svg id="canvas" class="canvas-layer" xmlns="http://www.w3.org/2000/svg"></svg>
                 <svg id="defs">
+                    <!-- TODO: Find a better filter. This one scares the pants off Safari, and on Firefox is a bit slow to render. -->
                     <filter id="better-highlight" filterUnits="objectBoundingBox" primitiveUnits="userSpaceOnUse">
                         <feMorphology operator="dilate" radius="2" result="outer" />
                         <feComposite in="SourceGraphic" operator="xor" result="outline" />
@@ -41,20 +42,20 @@
                     <div id="translate" class="vector prop">
                         <h4>Translate</h4>
                         <label for="translate-x">X</label>
-                        <input type="number" id="translate-x" />
+                        <input type="number" id="translate-x" step="-1" />
                         <label for="translate-y">Y</label>
-                        <input type="number" id="translate-y" />
+                        <input type="number" id="translate-y" step="-1" />
                         <label for="translate-z">Z</label>
-                        <input type="number" id="translate-z" />
+                        <input type="number" id="translate-z" step="-1" />
                     </div>
                     <div id="rotate" class="vector prop">
                         <h4>Rotate</h4>
                         <label for="rotate-x">X</label>
-                        <input type="number" id="rotate-x" step="0.1" />
+                        <input type="number" id="rotate-x" step="-0.1" />
                         <label for="rotate-y">Y</label>
-                        <input type="number" id="rotate-y" step="0.1" />
+                        <input type="number" id="rotate-y" step="-0.1" />
                         <label for="rotate-z">Z</label>
-                        <input type="number" id="rotate-z" step="0.1" />
+                        <input type="number" id="rotate-z" step="-0.1" />
                     </div>
                     <div id="scale" class="vector prop">
                         <h4>Scale</h4> <label for="scale-x">X</label>
