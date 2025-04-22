@@ -52,6 +52,12 @@ class EnhancedInput {
         this.startX = 0;
         this.startY = 0;
 
+        const changeEvent = new Event('change', {
+            bubbles: true,
+            cancelable: true
+        });
+        this.input.dispatchEvent(changeEvent);
+
         this.input.removeEventListener( "pointermove", this._dragMove );
         this.input.removeEventListener( "pointerup", this._dragEnd );
         this.input.removeEventListener( "pointercancel", this._dragEnd );
