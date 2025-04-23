@@ -6,6 +6,8 @@
 
 Currently under active development, not suitable for regular use.
 
+https://github.com/user-attachments/assets/35aab4f8-db0d-4ed8-adf6-0dbd22ef859e
+
 ## About Zoodle
 
 Zoodle is a live WYSIWYG editor for Zdog, the round, flat, designer-friendly
