@@ -145,17 +145,7 @@ class Zoodle {
       return;
     }
 
-    // Create anchors matching selected objects.
-    let targets = this.selection.map((target) => {
-      return new Zdog.Anchor({
-        addTo: this.ui,
-        // TODO: Maybe a flag for whether or not to include our own transforms vs just our parents'.
-        // Cause right now translate widgets are getting rotated when translation is applied before rotation.
-        ...this.getWorldTransforms(target),
-      });
-    });
-
-    this.tool.drawWidget(targets);
+    this.tool.drawWidget(this.selection);
   }
 
   syncLayers() {
@@ -360,11 +350,24 @@ class TranslateTool extends Tool {
     let direction = this.widget.renderNormal; // TODO: Break out into a function.
     let delta = this.editor.getAxisDistance(x, y, Math.atan2(direction.y, direction.x));
     delta /= -this.editor.scene.zoom;
-    delta /= this.widget.scale;
-    let command = new TranslateCommand(this.editor, this.targets, new Zdog.Vector({[this.mode]: delta}));
+    delta *= this.widget.scale.x;
+    let command = new TranslateCommand(this.editor, this.targets, new Zdog.Vector({[this.mode]: delta}), this.startTranslate);
     this.editor.did(command);
   }
   drawWidget(targets) {
+    // Create anchors matching selected objects.
+    targets = targets.map((target) => {
+      // TODO: Double check this is correct.
+      let parentTransforms = this.editor.getWorldTransforms(target.addTo);
+      let childTranslate = target.translate.copy().rotate(parentTransforms.rotate);
+      parentTransforms.translate.add(childTranslate);
+      parentTransforms.translate.multiply(parentTransforms.scale);
+      return new Zdog.Anchor({
+        addTo: this.editor.ui,
+        ...parentTransforms,
+      });
+    });
+
     let origin = new Zdog.Shape({
       stroke: .5,
       color: lace,
@@ -485,6 +488,14 @@ class RotateTool extends Tool {
     this.editor.did(command);
   }
   drawWidget(targets) {
+    // Create anchors matching selected objects.
+    targets = targets.map((target) => {
+      return new Zdog.Anchor({
+        addTo: this.editor.ui,
+        ...this.editor.getWorldTransforms(target),
+      });
+    });
+
     const widgetDiameter = 10;
     const widgetStroke = 0.75;
 
