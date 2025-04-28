@@ -64,10 +64,28 @@ class Zoodle {
     uiElem.addEventListener("gotpointercapture", _ => uiElem.classList.add("active"));
     uiElem.addEventListener("lostpointercapture", _ => uiElem.classList.remove("active"));
 
+    // TODO: Maybe we shouldn't listen to these if they're in an input element
+    this.registerShortcut("z", this.history.undo.bind(this.history), true);
+    this.registerShortcut("Z", this.history.redo.bind(this.history), true);
+    this.registerShortcut("y", this.history.redo.bind(this.history), true);
+
+    this.selection = [this.scene.children[0].children[0]];
+
     this.props.updatePanel();
     this.updateHighlights();
     this.updateUI();
     this.update();
+  }
+
+  registerShortcut(key, callback, preventDefault) {
+    document.body.addEventListener("keydown", e => {
+      if (e.ctrlKey && e.key === key) {
+        if (preventDefault) {
+          e.preventDefault();
+        }
+        callback();
+      }
+    });
   }
 
   update() {
@@ -306,7 +324,7 @@ class TranslateTool extends Tool {
   }
   start(ptr, target, x, y) {
     this.widget = target;
-    this.targets = this.editor.selection;
+    this.targets = this.editor.selection.slice(0);
     this.mode = TranslateTool.MODE_NONE;
     if (!this.targets.length || target.layer !== Zoodle.LAYER_UI || !target.color) {
       return;
@@ -439,7 +457,7 @@ class RotateTool extends Tool {
 
   start(ptr, target, x, y) {
     this.widget = target;
-    this.targets = this.editor.selection;
+    this.targets = this.editor.selection.slice(0);
     this.mode = RotateTool.MODE_NONE;
     if (!this.targets.length || target.layer !== Zoodle.LAYER_UI || !target.color) {
       return;
@@ -555,7 +573,7 @@ class SelectCommand extends Command {
     this.target = target;
   }
   do() {
-    this.oldSelection = this.editor.selection;
+    this.oldSelection = this.editor.selection.slice( 0 );
     if (!this.target) {
       this.editor.clearSelection();
     } else if (this.replace) {
@@ -577,14 +595,14 @@ class SelectCommand extends Command {
 }
 
 class TranslateCommand extends Command {
-  constructor(editor, target, delta) {
+  constructor(editor, target, delta, oldTranslate = null) {
     super(editor);
     if (!Array.isArray(target)) {
       target = [target];
     }
     this.target = target;
     this.delta = delta;
-    this.oldTranslate = target.map((t) => t.translate.copy());
+    this.oldTranslate = oldTranslate || target.map((t) => t.translate.copy());
   }
 
   do() {
@@ -593,6 +611,7 @@ class TranslateCommand extends Command {
     this.target.forEach((t, i) => {
       t.translate.set(this.oldTranslate[i]).add(this.delta);
     });
+    this.refresh();
   }
   undo() {
     if (!this.target) return console.error("Undoing TranslateCommand with no target.");
@@ -600,6 +619,12 @@ class TranslateCommand extends Command {
     this.target.forEach((t, i) => {
       t.translate.set(this.oldTranslate[i]);
     });
+    this.refresh();
+  }
+  refresh() {
+    this.editor.updateHighlights();
+    this.editor.updateUI();
+    this.editor.props.updatePanel();
   }
 }
 
@@ -650,11 +675,13 @@ class EditCommand extends Command {
   do() {
     this.target.forEach( (t) => {
       t[this.propId] = this.value;
+      if (t.updatePath) t.updatePath();
     });
   }
   undo() {
     this.target.forEach( (t, i) => {
       t[this.propId] = this.oldValue[i];
+      if (t.updatePath) t.updatePath();
     });
   }
 }
@@ -665,13 +692,8 @@ class History {
     this.redoStack = [];
   }
 
-  push(command, newCommand = true) {
-    if (newCommand) {
-      this.undoStack[this.undoStack.length - 1] = command;
-    } else {
-      this.undoStack.push(command);
-    }
-
+  push(command) {
+    this.undoStack.push(command);
     this.redoStack = [];
   }
 
@@ -719,7 +741,7 @@ class Properties {
     const newValue = this.readPanel(propElem);
     // start a new edit command
     if (!this.command) {
-      this.command = new EditCommand(this.editor, this.editor.selection, propElem.id, newValue, oldValue);
+      this.command = new EditCommand(this.editor, this.editor.selection.slice(0), propElem.id, newValue, [oldValue]);
     } else {
       this.command.value = newValue;
     }
@@ -866,12 +888,12 @@ class Properties {
   // Write property to the selected objects
   // If value is null, it reads the value from the properties panel.
   writeProperty(propElem, value = null) {
-    value = value || this.readPanel(propElem);
+    if (value === null) value = this.readPanel(propElem);
     let targets = this.editor.selection;
     targets.forEach( (target) => {
       target[propElem.id] = value;
-      // TODO: Add additional type information so we can check if we actually need to do this.
-      if (target.updatePath) target.updatePath();
+      // TODO: Add additional type information to props so we can check if we actually need to do this.
+      if (t.updatePath) target.updatePath();
     });
   }
 
