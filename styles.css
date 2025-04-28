@@ -210,7 +210,9 @@ main {
     flex-grow: 1;
 }
 
-#properties.hidden .prop-group, #properties .hidden {
+#properties.hidden .prop-group,
+#properties .prop-group:not(:has(:not(.hidden))),
+#properties .hidden {
     display: none;
 }
 
