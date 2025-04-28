@@ -38,7 +38,7 @@ class EnhancedInput {
         const dx = event.screenX - this.startX;
         const dy = event.screenY - this.startY;
         let step = this.input.step ? parseFloat(this.input.step) : 1;
-        this.input.valueAsNumber = this.startValue + dy * 0.1 * step * -1;
+        this.input.valueAsNumber = Math.round( this.startValue + dy * -0.1 * step * 100 ) / 100;
 
         // Manually fire input event since updating it programmatically won't.
         const inputEvent = new Event('input', {
