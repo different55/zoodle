@@ -1,5 +1,5 @@
 class Zoodle {
-  constructor(sceneElem, overlayElem, uiElem, panelElem) {
+  constructor(sceneElem, overlayElem, uiElem, propElem, outlineElem) {
     // TODO: Calculate appropriate zooms and sizes
     let zoom = 30;
     let rotate = { x: -Math.atan(1 / Math.sqrt(2)), y: Zdog.TAU / 8 };
@@ -35,7 +35,8 @@ class Zoodle {
     };
     this.tool = this.tools.translate;
 
-    this.props = new Properties(panelElem, this);
+    this.props = new Properties(propElem, this);
+    this.outliner = new Outliner(outlineElem, this);
 
     this.presets = {
       solar: new Solar(),
@@ -72,6 +73,7 @@ class Zoodle {
     this.selection = [this.scene.children[0].children[0]];
 
     this.props.updatePanel();
+    this.outliner.updatePanel();
     this.updateHighlights();
     this.updateUI();
     this.update();
@@ -136,6 +138,8 @@ class Zoodle {
   }
 
   updateHighlights() {
+    this.outliner.updateHighlights();
+
     this.overlay.children = [];
     this.selection.forEach((selected) => {
       let highlight = selected.copyGraph({
@@ -295,5 +299,6 @@ class History {
 const sceneElem = document.querySelector("#canvas");
 const overlayElem = document.querySelector("#overlay");
 const uiElem = document.querySelector("#ui");
-const props = document.querySelector("#properties");
-const zoodle = new Zoodle(sceneElem, overlayElem, uiElem, props);
+const propElem = document.querySelector("#properties");
+const outlineElem = document.querySelector("#outliner");
+const zoodle = new Zoodle(sceneElem, overlayElem, uiElem, propElem, outlineElem);

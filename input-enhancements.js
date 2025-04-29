@@ -13,18 +13,15 @@ class EnhancedInput {
         this.input.addEventListener( "blur", this.disableDrag.bind(this) );
     }
     enableDrag() {
-        console.log(this.input + " focused");
         this.input.addEventListener( "pointerdown", this._dragStart );
     }
     disableDrag() {
-        console.log(this.input + " blurred");
         this.input.removeEventListener( "pointerdown", this._dragStart );
         this.input.removeEventListener( "pointermove", this._dragMove );
         this.input.removeEventListener( "pointerup", this._dragEnd );
         this.input.removeEventListener( "pointercancel", this._dragEnd );
     }
     dragStart(event) {
-        console.log(this.input + " dragging");
         this.startX = event.screenX;
         this.startY = event.screenY;
         this.startValue = this.input.valueAsNumber;
@@ -38,7 +35,7 @@ class EnhancedInput {
         const dx = event.screenX - this.startX;
         const dy = event.screenY - this.startY;
         let step = this.input.step ? parseFloat(this.input.step) : 1;
-        this.input.valueAsNumber = Math.round( this.startValue + dy * -0.1 * step * 100 ) / 100;
+        this.input.valueAsNumber = Math.round( (this.startValue + dy * -0.1 * step) * 100 ) / 100;
 
         // Manually fire input event since updating it programmatically won't.
         const inputEvent = new Event('input', {
@@ -48,7 +45,6 @@ class EnhancedInput {
         this.input.dispatchEvent(inputEvent);
     }
     dragEnd(event) {
-        console.log(this.input + " released");
         this.startX = 0;
         this.startY = 0;
 

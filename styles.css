@@ -76,6 +76,7 @@ menu {
     left: 0;
     height: 100vh;
     padding-left: 1rem;
+    padding-top: 1rem;
     display: flex;
     flex-direction: column;
     gap: .5em;
@@ -91,13 +92,16 @@ main {
 
     display: grid;
     grid-template-columns: 1fr 20rem;
+    grid-template-rows: 20rem 1fr;
+    grid-template-areas:
+        "canvas outliner"
+        "canvas properties";
 }
 
 /* Canvas */
 .canvas-container {
     position: relative;
-    width: 100%;
-    height: 100%;
+    grid-area: canvas;
 }
 
 .canvas-layer {
@@ -130,12 +134,13 @@ main {
 }
 
 #overlay {
+    opacity: 0.8;
     z-index: 1;
 }
 
-#overlay {
+/*#overlay:not(:empty) {
     filter: url(#better-highlight);
-}
+}*/
 
 #ui {
     z-index: 2;
@@ -146,8 +151,8 @@ main {
     cursor: pointer;
 }
 
-/* Properties */
-#properties {
+/* Panels */
+#properties, #outliner {
     max-height: 100%;
     overflow-y: scroll;
     margin: 1rem;
@@ -159,6 +164,17 @@ main {
     box-shadow: .5px .5px 0 .5px var(--raisin);
 }
 
+#properties {
+    grid-area: properties;
+    margin-top: .5rem;
+}
+
+#outliner {
+    grid-area: outliner;
+    margin-bottom: .5rem;
+}
+
+/* Properties */
 .prop-group {
     padding: .5rem;
     margin: .5rem;
@@ -220,6 +236,70 @@ main {
 #properties .prop.optional input[type="checkbox"]:not(:checked) + input {
     display: none;
 }
+
+/* Outliner */
+#outliner ul {
+    --color: #333;
+    padding-left: 0;
+}
+
+#outliner li {
+    list-style: none;
+    padding: .1rem .5rem;
+    padding-right: 0;
+    font-size: 1.1rem;
+}
+
+#outliner .name {
+    display: inline-block;
+    width: 100%;
+}
+
+#outliner li.selected {
+    background: var(--peach);
+    color: #111;
+    border-radius: var(--roundness);
+
+    & > .name {
+        font-weight: bold;
+        color: #000;
+        text-decoration: underline;
+    }
+}
+
+#outliner .icon {
+    display: inline-block;
+    width: 1rem;
+    height: 1rem;
+    background-color: var(--color);
+    vertical-align: middle;
+    margin-right: .25rem;
+    border-radius: .25rem;
+}
+
+/* Outliner icons */
+/*#outliner .icon {
+    clip-path: circle(50%);
+}
+
+#outliner [data-type] > .name > .icon {
+    width: 32px;
+    height: 32px;
+    transform: scale(0.5);
+    margin: -8px;
+    margin-right: calc( .25rem - 8px );
+}
+
+#outliner [data-type="Illustration"] > .name > .icon {
+    clip-path: path("M30.5 6.3c0-1.8.5-5.1-6.9-5.1S2.5.5 1.4 1.6 1 17.4.9 20C.8 33.8.8 30.8 29.4 30.9s.4-21.1 1-24.7zM3.8 3.7c7.1-.1 14.2 0 21.3.6 1.3 7.2 1.4 14.5.4 21.7-7.1-.1-14.2-.3-21.3-.4-.3-6.1-.4-20.7-.4-21.9zm9.3 16.4c-1 .1-2.3.6-3.3.2-1.7-.8-.5-2.5 0-3.6 1.4-2.6 2.4-5.4 3.6-8 0-1.5 2-2 2.8-.7 1.7 2.8 3.5 5.5 5.1 8.4 2.2 4.1-6.1 3.1-8.3 3.8z");
+}
+
+#outliner [data-type="Cone"] > .name > .icon {
+    clip-path: path("M27.7,22.6c-3.4-5.9-6.4-11.9-9-18.2,0,0,0,0,0,0-.4-.9-.6-2.1-1.8-2.1-4.8-1.4-8.7,12.1-10.9,15.7-.4,2-3.8,4.7-1.8,6.5,3.9,3.3,25,5.9,23.5-1.9ZM10.1,16c1.6-3.6,3.3-7.4,5.8-10.5,2.2,5.2,4.6,10.2,7.3,15.1-4.8-1.3-10.1-1.7-14.9-.6.6-1.3,1.2-2.7,1.8-4Z");
+}
+#outliner [data-type="Shape"] > .name > .icon {
+    clip-path: path("M26.58 5.2c-2.01-5-9.77-1.5-8.26 3.29-9.06 2.82.9 13.49-6.37 15.01 1.51-6.12-7.26-9.07-8.02-2.1-.24 2.47 1.45 4.4 4.36 4.16 9 .93 9.75-1.72 8.85-10.88-.25-2.54 1.82-4.02 3.15-3.98 2.39.69 8.54-.26 6.29-5.5zM6.61 22.66c-1.14-2.55 2.18-3.31 2.7-1.4.45 1.64-1.84 2.96-2.7 1.4zM24.54 7.08c.46 1.93-3.4 2.59-3.73.65-.41-2.39 2.91-4.06 3.73-.65z");
+}*/
 
 /* Footer */
 /* Animation */

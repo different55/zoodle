@@ -173,7 +173,7 @@ class Properties {
     targets.forEach( (target) => {
       target[propElem.id] = value;
       // TODO: Add additional type information to props so we can check if we actually need to do this.
-      if (t.updatePath) target.updatePath();
+      if (target.updatePath) target.updatePath();
     });
   }
 
