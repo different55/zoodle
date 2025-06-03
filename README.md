@@ -4,7 +4,7 @@
 
 ## Status
 
-Currently under active development, not suitable for regular use.
+Currently under active development.
 
 https://github.com/user-attachments/assets/35aab4f8-db0d-4ed8-adf6-0dbd22ef859e
 
@@ -12,8 +12,8 @@ https://github.com/user-attachments/assets/35aab4f8-db0d-4ed8-adf6-0dbd22ef859e
 
 Zoodle is a live WYSIWYG editor for Zdog, the round, flat, designer-friendly
 pseudo-3D engine concocted by [desandro](https://github.com/desandro/). I think
-Zdog's pretty nifty, want to play with it more, and want others to play with it
-more, and thought it looked like a good brain-bending exercise.
+Zdog's pretty nifty, that SVGs are cool technology, and want others to be able
+to play with them more. And I thought it looked like a good brain-bending exercise.
 
 ## Current state
 
