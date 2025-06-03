@@ -6,7 +6,7 @@
 
 Currently under active development.
 
-https://github.com/user-attachments/assets/35aab4f8-db0d-4ed8-adf6-0dbd22ef859e
+https://github.com/user-attachments/assets/befaa175-5813-4e8b-98ef-eceb81a32060
 
 ## About Zoodle
 
